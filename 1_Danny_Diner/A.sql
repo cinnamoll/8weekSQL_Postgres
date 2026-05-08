@@ -160,3 +160,39 @@ INNER JOIN (
 ON s.product_id = p.product_id
 GROUP BY 1
 ORDER BY 1;
+
+-- 10, In the first week after a customer joins the program (including their join date) 
+-- they earn 2x points on all items, not just sushi 
+-- how many points do customer A and B have at the end of January?
+WITH count_point AS (
+    SELECT 
+        s.customer_id,
+        s.order_date,
+        m.join_date,
+        SUM(points) AS total_points
+    FROM sales AS s
+    INNER JOIN (
+        SELECT
+            product_id,
+            CASE 
+                WHEN product_id = 1 THEN price * 20
+                ELSE price * 10 END 
+            AS points
+        FROM menu 
+    ) AS p
+    ON s.product_id = p.product_id
+    RIGHT JOIN members m 
+    ON s.customer_id = m.customer_id
+    GROUP BY 1,2,3
+)
+SELECT 
+    customer_id,
+    SUM(
+        CASE WHEN  order_date >= join_date 
+                    AND order_date < join_date + INTERVAL '7 days'
+        THEN total_points * 2
+        ELSE total_points
+        END
+    ) AS new_point
+FROM count_point
+GROUP BY 1;
